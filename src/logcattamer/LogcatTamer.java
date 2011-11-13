@@ -35,6 +35,7 @@ package logcattamer;
  * TableSelectionDemo.java requires no other files.
  */
 
+import javax.security.auth.callback.Callback;
 import javax.swing.*;
 import javax.swing.plaf.basic.BasicInternalFrameTitlePane.MaximizeAction;
 import javax.swing.table.AbstractTableModel;
@@ -58,6 +59,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.awt.Adjustable;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.GridLayout;
@@ -70,75 +72,31 @@ import java.util.Calendar;
 public class LogcatTamer extends JPanel 
                                 implements ActionListener { 
 	
-	private static boolean DEBUG = false;
+	public final static boolean DEBUG = false;
 	
-    private JTable table;
-    private JCheckBox rowCheck;
-    private JCheckBox columnCheck;
-    private JCheckBox cellCheck;
-    private ButtonGroup buttonGroup;
-    private JTextArea output;
-
     private JScrollPane mFilterPane;
     private JScrollPane mLoggerPane;
     
-    private JTable mFilterTable;
-    private JTable mLoggerTable;
-    
-    private DefaultTableModel mFilter;
-    private DefaultTableModel mLogger;
-	private JTextField mFilterText;
-
 	private boolean mAutoScroll = true;
+
+	private LogcatLogger mLogger;
+	private LogcatFilter mFilter;
+	
+	private Thread mLoggingThread;
 	
 	
 	public LogcatTamer() {
         super();
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         
-        mFilter = new DefaultTableModel() {
-        	public boolean isCellEditable(int row, int column) {
-        	    if (column == 0) {
-        	      return true;
-        	    }
-        	    return false;
-        	}
-        };
-
-    	mFilter.setColumnIdentifiers(new Object[] {
-    	    "show", "pid", "tag", "count" });
-    	
-
-    	JCheckBox checkBox = new JCheckBox();
-    	checkBox.setHorizontalAlignment(JLabel.CENTER);
-    	DefaultCellEditor checkBoxEditor = new DefaultCellEditor(checkBox);
-    	
-    	mFilterTable = new JTable(mFilter);
-    	mFilterTable.getColumn("show").setCellRenderer(new CheckBoxRenderer());
-    	mFilterTable.getColumn("show").setCellEditor(checkBoxEditor);
-    	
-    	
-    	mLogger = new DefaultTableModel() {
-        	public boolean isCellEditable(int row, int column) {
-        	    return false;
-        	}
-        };
-
-        mLogger.setColumnIdentifiers(new Object[] {
-    	    "level", "time", "pid", "tag", "message" });
+        initFilter();
+        intiLogger();
         
-        mLoggerTable = new JTable(mLogger);
-        mLoggerTable.setDefaultRenderer(String.class, new MultiLineCellRenderer());
-        
-        
-        
-        mFilterPane = new JScrollPane(mFilterTable);
-        mLoggerPane = new JScrollPane(new LogcatViewer());
         
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
         		mFilterPane, mLoggerPane);
 		splitPane.setOneTouchExpandable(true);
-		splitPane.setDividerLocation(150);
+		splitPane.setDividerLocation(250);
 		
 		//Provide minimum sizes for the two components in the split pane
 		Dimension minimumSize = new Dimension(100, 50);
@@ -147,70 +105,68 @@ public class LogcatTamer extends JPanel
 		
 		add(splitPane);
 		
-		mLoggerPane.setAutoscrolls(true);
-		
-		
-//		
-		mFilter.addRow(new Object[]{true, 1,2,3, 4, 5});
-		
-		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-//		mLogger.addRow(new Object[]{true, 1,2,3, 4, 5});
-
-		mLoggerPane.addMouseWheelListener(new MouseWheelListener() {
+		mLoggingThread = new Thread(new LoggingRunnable());
+		mLoggingThread.start();
+    }
+  
+	private void intiLogger() {
+        mLogger = new LogcatLogger();
+        mLoggerPane = new JScrollPane(mLogger);
+        
+        mLoggerPane.addMouseWheelListener(new MouseWheelListener() {
 			
 			@Override
 			public void mouseWheelMoved(MouseWheelEvent e) {
 				mAutoScroll = false;
 			}
 		});
+        
+        mLoggerPane.setAutoscrolls(true);
 		
 		mLoggerPane.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {  
 			public void adjustmentValueChanged(AdjustmentEvent e) {
-				
     			if (mAutoScroll) e.getAdjustable().setValue(e.getAdjustable().getMaximum());  
     		}});
 		
-//		t.start();
-		
 		mLoggerPane.addMouseListener(new MouseListener() {
+			@Override
+			public void mouseReleased(MouseEvent arg0) {}
+			@Override
+			public void mousePressed(MouseEvent arg0) {}
+			@Override
+			public void mouseExited(MouseEvent arg0) {}
+			@Override
+			public void mouseEntered(MouseEvent arg0) {}
+			@Override
+			public void mouseClicked(MouseEvent arg0) {
+				mAutoScroll = false;
+			}
+		});
+		
+		mLogger.addKeyListener(new KeyListener() {
+			@Override
+			public void keyTyped(KeyEvent arg0) {}
+			@Override
+			public void keyReleased(KeyEvent arg0) {
+				
+				if (arg0.getKeyCode() == 35) {
+					mAutoScroll = true;
+					System.out.println("autoscroll ON");
+				} else {
+					mAutoScroll = false;
+				}
+			}
+			@Override
+			public void keyPressed(KeyEvent arg0) {}
+		});
+        
+	}
+
+	private void initFilter() {
+		mFilter = new LogcatFilter();
+		mFilterPane = new JScrollPane(mFilter);
+		
+		mFilter.addMouseListener(new MouseListener() {
 			
 			@Override
 			public void mouseReleased(MouseEvent arg0) {
@@ -238,106 +194,169 @@ public class LogcatTamer extends JPanel
 			
 			@Override
 			public void mouseClicked(MouseEvent arg0) {
-				// TODO Auto-generated method stub
-				mAutoScroll = false;
+				System.out.println("GOTCHA");
+				
+				mLogger.setFilter(mFilter.getFilter());
+				
 			}
 		});
 		
-		mLoggerPane.
-		addKeyListener(new KeyListener() {
-			
-			@Override
-			public void keyTyped(KeyEvent arg0) {
-				// TODO Auto-generated method stub
-				System.out.println("keyTyped");
-			}
-			
-			@Override
-			public void keyReleased(KeyEvent arg0) {
-				// TODO Auto-generated method stub
-				
-				
-				if (arg0.getKeyCode() == 35) {
-					mAutoScroll = true;
-				} else {
-					mAutoScroll = false;
-				}
-			}
-			
-			@Override
-			public void keyPressed(KeyEvent arg0) {
-				// TODO Auto-generated method stub
-				System.out.println("keyPressed");
-			}
-		});
-		
+	}
+	
+    public void actionPerformed(ActionEvent event) {
+    	
+    	System.out.println(event.getActionCommand()); 
+    	
     }
     
-    private JCheckBox addCheckBox(String text) {
-        JCheckBox checkBox = new JCheckBox(text);
-        checkBox.addActionListener(this);
-        add(checkBox);
-        return checkBox;
-    }
+    private class LoggingRunnable implements Runnable {
 
-    private JRadioButton addRadio(String text) {
-        JRadioButton b = new JRadioButton(text);
-        b.addActionListener(this);
-        buttonGroup.add(b);
-        add(b);
-        return b;
-    }
+		@Override
+		public void run() {
+			try {
+	            String command = "adb logcat -v time";
+	            Process child = Runtime.getRuntime().exec(command);
 
-    public void actionPerformed(ActionEvent event) {
-        String command = event.getActionCommand();
-        //Cell selection is disabled in Multiple Interval Selection
-        //mode. The enabled state of cellCheck is a convenient flag
-        //for this status.
-        if ("Row Selection" == command) {
-            table.setRowSelectionAllowed(rowCheck.isSelected());
-            //In MIS mode, column selection allowed must be the
-            //opposite of row selection allowed.
-            if (!cellCheck.isEnabled()) {
-                table.setColumnSelectionAllowed(!rowCheck.isSelected());
-            }
-        } else if ("Column Selection" == command) {
-            table.setColumnSelectionAllowed(columnCheck.isSelected());
-            //In MIS mode, row selection allowed must be the
-            //opposite of column selection allowed.
-            if (!cellCheck.isEnabled()) {
-                table.setRowSelectionAllowed(!columnCheck.isSelected());
-            }
-        } else if ("Cell Selection" == command) {
-            table.setCellSelectionEnabled(cellCheck.isSelected());
-        } else if ("Multiple Interval Selection" == command) { 
-            table.setSelectionMode(
-                    ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-            //If cell selection is on, turn it off.
-            if (cellCheck.isSelected()) {
-                cellCheck.setSelected(false);
-                table.setCellSelectionEnabled(false);
-            }
-            //And don't let it be turned back on.
-            cellCheck.setEnabled(false);
-        } else if ("Single Interval Selection" == command) {
-            table.setSelectionMode(
-                    ListSelectionModel.SINGLE_INTERVAL_SELECTION);
-            //Cell selection is ok in this mode.
-            cellCheck.setEnabled(true);
-        } else if ("Single Selection" == command) {
-            table.setSelectionMode(
-                    ListSelectionModel.SINGLE_SELECTION);
-            //Cell selection is ok in this mode.
-            cellCheck.setEnabled(true);
+	            // Get the input stream and read from it
+	            InputStream in = child.getInputStream();
+	            byte[] buffer = new byte[2048];
+	            String stringBuffer = new String();
+	            
+	            int c;
+	            while ((c = in.read(buffer)) != -1) {
+	            	
+	            	stringBuffer += new String(buffer);
+	            	buffer = new byte[128];
+	            	
+	            	stringBuffer = processStringBuffer(stringBuffer);
+	            	
+	            }
+	            in.close();
+	        } catch (IOException e) {
+	        	e.printStackTrace();
+	        }
+			
+			System.out.println("run is done");
+		}
+
+		private String processStringBuffer(String stringBuffer) {
+			while(stringBuffer.contains("\n"))
+        	{
+        		
+				try {
+					
+					char level = 'D';
+					String pid = "0";
+					String timeStampString = null;
+					String tag = "asdf";
+					String message = "someting";
+					Boolean parsingError = false;
+					
+					int levelPos = stringBuffer.indexOf('/')-1;
+					
+					if (LogcatTamer.DEBUG) {
+						System.out.println("levelPos: " + levelPos);
+					}
+					
+					if (stringBuffer.contains("--------- beginning of /dev/log/main") ||
+							stringBuffer.contains("--------- beginning of /dev/log/system")) {
+						stringBuffer = stringBuffer.substring(stringBuffer.indexOf("\n")+1);
+					}
+					
+					if (levelPos < 0 || levelPos > stringBuffer.length()) {
+						parsingError = true;
+						level = '?';
+					} else {
+						if (levelPos > 18) {
+							timeStampString = stringBuffer.substring(levelPos-19, levelPos-1);
+						} 
+						
+						level = stringBuffer.charAt(levelPos);
+					}
+					
+					int tagStart = levelPos+2;
+					int tagEnd = stringBuffer.indexOf("(");
+					
+					if (LogcatTamer.DEBUG) {
+						System.out.println("tagStart: " + tagStart);
+						System.out.println("tagEnd: " + tagEnd);
+					}
+					
+					if (parsingError || tagStart < 0 || tagEnd < 0) {
+						parsingError = true;
+						tag = "<unknown>";
+					} else {
+						tag = stringBuffer.substring(tagStart, tagEnd);
+					}
+					
+					
+					int pidEnd = stringBuffer.indexOf(")", tagEnd);
+					int pidStart = stringBuffer.lastIndexOf("(", pidEnd)+1;
+					
+					if (LogcatTamer.DEBUG) {
+						System.out.println("pidStart: " + pidStart);
+						System.out.println("pidEnd: " + pidEnd);
+					}
+					
+					if (parsingError || pidStart < 0 || pidEnd < 0) {
+						parsingError = true;
+						pid = "0";
+						pidEnd = 0;
+					} else {
+						pid = stringBuffer.substring(pidStart, pidEnd).trim();			            			
+					}
+					
+					int messageStart = stringBuffer.indexOf(":", pidEnd)+1;
+					int messageEnd = stringBuffer.indexOf("\n",messageStart);
+					
+					if (LogcatTamer.DEBUG) {
+						System.out.println("messageStart:" +messageStart);
+						System.out.println("messageEnd:" +messageEnd);
+					}
+					
+					if (messageStart < 0 || messageEnd < 0 || messageEnd < messageStart) {
+						message = "PARSING ERROR";
+					} else {
+						message = stringBuffer.substring(messageStart, messageEnd);
+					}
+					
+					stringBuffer = stringBuffer.substring(messageEnd+1);
+					
+					
+					if (!parsingError) {
+						
+						try {
+							mLogger.addRow(new Object[]{level, timeStampString, pid, tag, message});
+							mFilter.handleNewMessage(pid, tag);
+						} catch (ArrayIndexOutOfBoundsException e) {
+							System.out.println("---UNABLE TO LOG---");
+							System.out.println("level: " + level);
+							System.out.println("time: " + timeStampString);
+							System.out.println("pid: " + pid);
+							System.out.println("tag: " + tag);
+							System.out.println("message: " + message);
+							System.out.println("--- CURRENT STRINGBUFFER START ---");
+							System.out.println(stringBuffer);
+							System.out.println("--- CURRENT STRINGBUFFER END---");
+						}
+					} else {
+						System.out.println("--- CURRENT STRINGBUFFER START ---");
+						System.out.println(stringBuffer);
+						System.out.println("--- CURRENT STRINGBUFFER END---");
+					}
+					
+				} catch (Exception e) {
+					e.printStackTrace();
+					
+					System.out.println("--- CURRENT STRINGBUFFER START ---");
+					System.out.println(stringBuffer);
+					System.out.println("--- CURRENT STRINGBUFFER END---");
+				}
+        	}
+			
+			return stringBuffer;
         }
-
-        //Update checkboxes to reflect selection mode side effects.
-        rowCheck.setSelected(table.getRowSelectionAllowed());
-        columnCheck.setSelected(table.getColumnSelectionAllowed());
-        if (cellCheck.isEnabled()) {
-            cellCheck.setSelected(table.getCellSelectionEnabled());
-        }
-    }
+	}
     
     /**
      * Create the GUI and show it.  For thread safety,
